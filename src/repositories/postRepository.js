@@ -53,3 +53,31 @@ export const updatePostbyId = async(id, updatedObject) => {
         console.log(error)
     }
 }
+
+export const addCommentToPost = async (postId, commentId) => {
+    try {
+        const post = await Post.findByIdAndUpdate(
+            postId,
+            { $push: { comments: commentId } },
+            { new: true }
+        );
+        return post;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
+export const removeCommentFromPost = async (postId, commentId) => {
+    try {
+        const post = await Post.findByIdAndUpdate(
+            postId,
+            { $pull: { comments: commentId } },
+            { new: true }
+        );
+        return post;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
