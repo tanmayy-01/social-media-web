@@ -18,9 +18,9 @@ router.post('/', isAuthenticated, upload.single('image'), validate(zodPostSchema
 
 router.get('/', isAuthenticated, getAllPosts);
 
-router.delete('/:id', deletePost)
+router.delete('/:id', isAuthenticated, deletePost);
 
-router.put('/:id', upload.single('image'), updatePost)
+router.put('/:id', isAuthenticated, upload.single('image'), updatePost);
 
 // Comment routes for posts
 router.get('/:postId/comments', getCommentsByPost)

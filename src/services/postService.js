@@ -1,6 +1,6 @@
 import { BUCKET_NAME } from "../config/serverConfig.js";
 import { supabase } from "../config/supabaseConfig.js";
-import { countAllPosts, createPost, deletePostById, findAllPosts, updatePostbyId } from "../repositories/postRepository.js";
+import { countAllPosts, createPost, deletePostById, findAllPosts, findPostById, updatePostbyId } from "../repositories/postRepository.js";
 
 export const createPostService = async (createPostObject) => {
   const { caption, file, isPublic, user } = createPostObject;
@@ -51,35 +51,70 @@ export const getAllPostsService = async (offSet, limit, userId) => {
   }
 }
 
-export const deletePostService = async (id) => {
-  const response = await deletePostById(id)
-  return response;
-}
-
-export const updatePostService = async (id, updatedObject, file) => {
-
-  if(file) {
-    const ext = file.mimetype.split("/")[1];
-  const fileName = `${crypto.randomUUID()}.${ext}`;
-  const filePath = `public/${fileName}`;
-
-  const { error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(filePath, file.buffer, {
-      contentType: file.mimetype,
-    });
-
-  if (error) {
+export const deletePostService = async (id, userId) => {
+  const post = await findPostById(id);
+  if (!post) {
+    const error = new Error("Post not found");
+    error.statusCode = 404;
     throw error;
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
-
-    updatedObject.image = publicUrlData.publicUrl;
+  // Ensure only the author of the post can delete it
+  if (!post.user || post.user.toString() !== userId.toString()) {
+    const error = new Error("You are not authorized to delete this post.");
+    error.statusCode = 403;
+    throw error;
   }
 
-  const post = await updatePostbyId(id, updatedObject);
-  return post;
-}
+  const response = await deletePostById(id);
+  return response;
+};
+
+export const updatePostService = async (id, updatedObject, file, userId) => {
+  const post = await findPostById(id);
+  if (!post) {
+    const error = new Error("Post not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Ensure only the author of the post can edit it
+  if (!post.user || post.user.toString() !== userId.toString()) {
+    const error = new Error("You are not authorized to edit this post.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const updateData = {};
+  if (updatedObject.caption !== undefined) {
+    updateData.caption = updatedObject.caption.trim();
+  }
+  if (updatedObject.isPublic !== undefined) {
+    updateData.isPublic = updatedObject.isPublic === "true" || updatedObject.isPublic === true;
+  }
+
+  if (file) {
+    const ext = file.mimetype.split("/")[1];
+    const fileName = `${crypto.randomUUID()}.${ext}`;
+    const filePath = `public/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(filePath);
+
+    updateData.image = publicUrlData.publicUrl;
+  }
+
+  const updatedPost = await updatePostbyId(id, updateData);
+  return updatedPost;
+};

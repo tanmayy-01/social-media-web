@@ -174,19 +174,141 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
+        const currentUserId = currentUser?._id || currentUser?.id;
+
         commentsContainer.innerHTML = data.data
           .map((c) => {
+            const commentUserId = c.user?._id || c.user;
+            const isCommentOwner = Boolean(currentUserId && commentUserId && String(commentUserId) === String(currentUserId));
             const author = c.user?.username ? `@${c.user.username}` : "User";
             const time = c.createdAt ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+
             return `
-              <div class="comment-item">
-                <span class="comment-author">${escapeHtml(author)}:</span>
-                <span class="comment-text">${escapeHtml(c.content)}</span>
+              <div class="comment-item" id="comment-item-${c._id}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                  <div>
+                    <span class="comment-author">${escapeHtml(author)}${isCommentOwner ? " (You)" : ""}:</span>
+                    <span class="comment-text" id="comment-text-${c._id}">${escapeHtml(c.content)}</span>
+                  </div>
+                  ${isCommentOwner ? `
+                    <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                      <button type="button" class="btn btn-secondary btn-sm edit-comment-btn" data-comment-id="${c._id}" style="padding: 1px 5px; font-size: 0.7rem;" title="Edit comment">✏️</button>
+                      <button type="button" class="btn btn-secondary btn-sm delete-comment-btn" data-comment-id="${c._id}" style="padding: 1px 5px; font-size: 0.7rem; color: #dc2626;" title="Delete comment">🗑️</button>
+                    </div>
+                  ` : ""}
+                </div>
                 <div class="comment-time">${time}</div>
+
+                ${isCommentOwner ? `
+                  <div id="comment-edit-panel-${c._id}" style="display: none; margin-top: 6px;">
+                    <input type="text" class="comment-input" id="comment-edit-input-${c._id}" value="${escapeHtml(c.content)}" style="margin-bottom: 6px; font-size: 0.8rem; padding: 4px 8px; width: 100%;" />
+                    <div style="display: flex; gap: 6px;">
+                      <button type="button" class="btn btn-primary btn-sm save-comment-edit-btn" data-comment-id="${c._id}" style="padding: 2px 8px; font-size: 0.75rem;">Save</button>
+                      <button type="button" class="btn btn-secondary btn-sm cancel-comment-edit-btn" data-comment-id="${c._id}" style="padding: 2px 8px; font-size: 0.75rem;">Cancel</button>
+                    </div>
+                  </div>
+                ` : ""}
               </div>
             `;
           })
           .join("");
+
+        // Attach event listeners to Edit and Delete comment buttons
+        commentsContainer.querySelectorAll(".edit-comment-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const commentId = btn.dataset.commentId;
+            const editPanel = commentsContainer.querySelector(`#comment-edit-panel-${commentId}`);
+            if (editPanel) {
+              const isHidden = editPanel.style.display === "none";
+              editPanel.style.display = isHidden ? "block" : "none";
+            }
+          });
+        });
+
+        commentsContainer.querySelectorAll(".cancel-comment-edit-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const commentId = btn.dataset.commentId;
+            const editPanel = commentsContainer.querySelector(`#comment-edit-panel-${commentId}`);
+            if (editPanel) editPanel.style.display = "none";
+          });
+        });
+
+        commentsContainer.querySelectorAll(".save-comment-edit-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const commentId = btn.dataset.commentId;
+            const editInput = commentsContainer.querySelector(`#comment-edit-input-${commentId}`);
+            const newContent = editInput?.value.trim();
+
+            if (!newContent) {
+              alert("Comment content cannot be empty.");
+              return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Saving...";
+
+            try {
+              const editRes = await fetch(`/api/v1/posts/${postId}/comments/${commentId}`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ content: newContent }),
+              });
+
+              const editData = await editRes.json();
+
+              if (editRes.ok && editData.success) {
+                loadCommentsForPost(postId, commentsContainer);
+              } else {
+                alert(editData.error || editData.message || "Failed to update comment.");
+                btn.disabled = false;
+                btn.textContent = "Save";
+              }
+            } catch (err) {
+              console.error(err);
+              alert("Server connection error while updating comment.");
+              btn.disabled = false;
+              btn.textContent = "Save";
+            }
+          });
+        });
+
+        commentsContainer.querySelectorAll(".delete-comment-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const commentId = btn.dataset.commentId;
+
+            if (!confirm("Are you sure you want to delete your comment?")) {
+              return;
+            }
+
+            btn.disabled = true;
+
+            try {
+              const delRes = await fetch(`/api/v1/posts/${postId}/comments/${commentId}`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              const delData = await delRes.json();
+
+              if (delRes.ok && delData.success) {
+                loadCommentsForPost(postId, commentsContainer);
+              } else {
+                alert(delData.error || delData.message || "Failed to delete comment.");
+                btn.disabled = false;
+              }
+            } catch (err) {
+              console.error(err);
+              alert("Server connection error while deleting comment.");
+              btn.disabled = false;
+            }
+          });
+        });
+
       } else {
         commentsContainer.innerHTML = `<div class="no-comments">Could not load comments.</div>`;
       }
@@ -302,15 +424,43 @@ document.addEventListener("DOMContentLoaded", () => {
               <span class="post-author">${escapeHtml(authorName)}</span>
               ${visibilityBadge}
             </div>
-            <span class="post-date">${formattedDate}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="post-date">${formattedDate}</span>
+              ${isOwner ? `
+                <button type="button" class="btn btn-secondary btn-sm" id="edit-toggle-${post._id}" style="padding: 2px 8px; font-size: 0.75rem;">✏️ Edit</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="delete-btn-${post._id}" style="padding: 2px 8px; font-size: 0.75rem; color: #dc2626; border-color: #fecaca;">🗑️ Delete</button>
+              ` : ""}
+            </div>
           </div>
+
+          ${isOwner ? `
+          <div class="edit-post-panel" id="edit-panel-${post._id}" style="display: none; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+            <form id="edit-form-${post._id}">
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label class="form-label" style="font-size: 0.8rem;">Edit Caption</label>
+                <textarea class="form-textarea" id="edit-caption-${post._id}" style="min-height: 55px;" required>${escapeHtml(post.caption)}</textarea>
+              </div>
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label class="form-label" style="font-size: 0.8rem;">Visibility</label>
+                <select class="form-input" id="edit-visibility-${post._id}">
+                  <option value="true" ${post.isPublic ? "selected" : ""}>🌍 Everyone can view</option>
+                  <option value="false" ${!post.isPublic ? "selected" : ""}>🔒 Only me</option>
+                </select>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn btn-primary btn-sm" id="edit-save-btn-${post._id}">Save Changes</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="edit-cancel-btn-${post._id}">Cancel</button>
+              </div>
+            </form>
+          </div>
+          ` : ""}
 
           <div class="post-image-container">
             <img src="${escapeHtml(post.image)}" alt="Post image" class="post-image" loading="lazy" />
           </div>
 
           <div class="post-content">
-            <p class="post-caption">${escapeHtml(post.caption)}</p>
+            <p class="post-caption" id="post-caption-display-${post._id}">${escapeHtml(post.caption)}</p>
           </div>
 
           <div class="comments-section">
@@ -335,6 +485,102 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         postsFeed.appendChild(postCard);
+
+        // Bind Edit and Delete handlers if owner
+        if (isOwner) {
+          const editToggleBtn = postCard.querySelector(`#edit-toggle-${post._id}`);
+          const editPanel = postCard.querySelector(`#edit-panel-${post._id}`);
+          const editCancelBtn = postCard.querySelector(`#edit-cancel-btn-${post._id}`);
+          const editForm = postCard.querySelector(`#edit-form-${post._id}`);
+          const editCaptionInput = postCard.querySelector(`#edit-caption-${post._id}`);
+          const editVisibilityInput = postCard.querySelector(`#edit-visibility-${post._id}`);
+          const editSaveBtn = postCard.querySelector(`#edit-save-btn-${post._id}`);
+          const deleteBtn = postCard.querySelector(`#delete-btn-${post._id}`);
+
+          editToggleBtn?.addEventListener("click", () => {
+            const isHidden = editPanel.style.display === "none";
+            editPanel.style.display = isHidden ? "block" : "none";
+          });
+
+          editCancelBtn?.addEventListener("click", () => {
+            editPanel.style.display = "none";
+          });
+
+          editForm?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newCaption = editCaptionInput.value.trim();
+            const newIsPublic = editVisibilityInput.value;
+
+            if (!newCaption) {
+              alert("Caption cannot be empty.");
+              return;
+            }
+
+            editSaveBtn.disabled = true;
+            editSaveBtn.textContent = "Saving...";
+
+            try {
+              const updateRes = await fetch(`/api/v1/posts/${post._id}`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  caption: newCaption,
+                  isPublic: newIsPublic,
+                }),
+              });
+
+              const updateData = await updateRes.json();
+
+              if (updateRes.ok && updateData.success) {
+                loadPosts();
+              } else {
+                alert(updateData.error || "Failed to update post.");
+              }
+            } catch (err) {
+              console.error(err);
+              alert("Server connection error while updating post.");
+            } finally {
+              editSaveBtn.disabled = false;
+              editSaveBtn.textContent = "Save Changes";
+            }
+          });
+
+          deleteBtn?.addEventListener("click", async () => {
+            if (!confirm("Are you sure you want to delete this post? This cannot be undone.")) {
+              return;
+            }
+
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = "Deleting...";
+
+            try {
+              const delRes = await fetch(`/api/v1/posts/${post._id}`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              const delData = await delRes.json();
+
+              if (delRes.ok && delData.success) {
+                loadPosts();
+              } else {
+                alert(delData.error || delData.message || "Failed to delete post.");
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = "🗑️ Delete";
+              }
+            } catch (err) {
+              console.error(err);
+              alert("Server connection error while deleting post.");
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = "🗑️ Delete";
+            }
+          });
+        }
 
         // Load comments for this card
         const commentsListContainer = postCard.querySelector(`#comments-list-${post._id}`);
