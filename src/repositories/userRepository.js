@@ -6,6 +6,7 @@ export const findUserByEmail = async (email) => {
     return user;
   } catch (error) {
     console.log(error);
+    throw error;
   }
 };
 
@@ -15,5 +16,26 @@ export const findAllUsers = async () => {
     return users;
   } catch (error) {
     console.log(error);
+    throw error;
+  }
+};
+
+export const createUser = async (userObject) => {
+  try {
+    const newUser = await User.create(userObject);
+    return newUser;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const findUserById = async (id) => {
+  try {
+    const user = await User.findById(id);
+    return user;
+  } catch (error) {
+    console.log(error);
+    throw error;
   }
 };
