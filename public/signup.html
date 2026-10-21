@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up - ImageGram</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Minimal Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-brand">
+        📷 ImageGram
+      </a>
+      <nav class="nav-links">
+        <a href="index.html" class="btn btn-secondary btn-sm">Home Feed</a>
+        <a href="login.html" class="btn btn-secondary btn-sm">Log In</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Signup Card Form -->
+  <main class="auth-wrapper">
+    <div class="card auth-card">
+      <div class="auth-header">
+        <h1>Create Account</h1>
+        <p>Join ImageGram to share images and connect</p>
+      </div>
+
+      <!-- Alert Box -->
+      <div id="alert-box" class="alert" role="alert"></div>
+
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="username" class="form-label">Username</label>
+          <input
+            type="text"
+            id="username"
+            class="form-input"
+            placeholder="At least 5 characters"
+            required
+            minlength="5"
+            autocomplete="username"
+          />
+          <div class="form-hint">Must be 5 or more characters</div>
+        </div>
+
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            class="form-input"
+            placeholder="e.g. user@example.com"
+            required
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input
+            type="password"
+            id="password"
+            class="form-input"
+            placeholder="At least 5 characters"
+            required
+            minlength="5"
+            autocomplete="new-password"
+          />
+          <div class="form-hint">Must be 5 or more characters</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Sign Up
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Log In here</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>

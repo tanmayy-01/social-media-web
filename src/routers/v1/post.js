@@ -14,9 +14,9 @@ import { zodCommentSchema } from '../../validators/zodCommentSchema.js';
 
 const router = express.Router();
 
-router.post('/', upload.single('image'), validate(zodPostSchema), createPost)
+router.post('/', isAuthenticated, upload.single('image'), validate(zodPostSchema), createPost);
 
-router.get('/', getAllPosts)
+router.get('/', isAuthenticated, getAllPosts);
 
 router.delete('/:id', deletePost)
 

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImageGram - Feed & Post Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header / Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-brand">
+        📷 ImageGram
+      </a>
+      <div id="auth-status-nav" class="nav-links">
+        <!-- Filled dynamically by app.js with Login/Signup or Logged in user + Logout -->
+        <a href="login.html" class="btn btn-secondary btn-sm">Log In</a>
+        <a href="signup.html" class="btn btn-primary btn-sm">Sign Up</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Feed Container -->
+  <main class="container">
+    <!-- Guest Prompt (shown when user is NOT logged in) -->
+    <section id="guest-prompt-section" class="card" style="text-align: center; padding: 36px 20px;">
+      <h2 class="card-title" style="font-size: 1.35rem; margin-bottom: 8px;">Welcome to ImageGram</h2>
+      <p class="card-subtitle" style="margin-bottom: 20px;">Please log in or create an account to view the community feed, share photos, and add comments.</p>
+      <div style="display: flex; justify-content: center; gap: 12px;">
+        <a href="login.html" class="btn btn-primary">Log In</a>
+        <a href="signup.html" class="btn btn-secondary">Sign Up</a>
+      </div>
+    </section>
+
+    <!-- 1. Create Post Card (shown ONLY after login) -->
+    <section id="create-post-section" class="card" aria-labelledby="create-post-heading" style="display: none;">
+      <h2 id="create-post-heading" class="card-title">Create a Post</h2>
+      <p class="card-subtitle">Share an image and caption with the community</p>
+
+      <!-- Alert for Post Actions -->
+      <div id="post-alert" class="alert" role="alert"></div>
+
+      <form id="create-post-form">
+        <div class="form-group">
+          <label for="post-image" class="form-label">Choose Image</label>
+          <input
+            type="file"
+            id="post-image"
+            class="form-input"
+            accept="image/*"
+            required
+          />
+          <div id="image-preview-wrapper" class="image-preview-wrapper">
+            <img id="image-preview" class="image-preview" alt="Selected preview" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="post-caption" class="form-label">Caption</label>
+          <textarea
+            id="post-caption"
+            class="form-textarea"
+            placeholder="Write an interesting caption..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="post-visibility" class="form-label">Visibility</label>
+          <select id="post-visibility" class="form-input">
+            <option value="true" selected>🌍 Everyone can view</option>
+            <option value="false">🔒 Only me</option>
+          </select>
+          <div class="form-hint">"Everyone can view" is public to all users. "Only me" is private and visible only to you.</div>
+        </div>
+
+        <button type="submit" id="submit-post-btn" class="btn btn-primary btn-full">
+          Publish Post
+        </button>
+      </form>
+    </section>
+
+    <!-- 2. Feed Header & Recent Posts (shown ONLY after login) -->
+    <section id="community-feed-section" style="display: none;">
+      <div class="feed-header" style="margin-bottom: 16px;">
+        <h2 style="font-size: 1.25rem; font-weight: 700;">Community Feed</h2>
+        <button id="refresh-posts-btn" class="btn btn-secondary btn-sm">
+          ↻ Refresh
+        </button>
+      </div>
+
+      <!-- Feed Container (populated by app.js) -->
+      <div id="posts-feed" style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="loading-indicator">Loading posts...</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

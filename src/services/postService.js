@@ -3,7 +3,7 @@ import { supabase } from "../config/supabaseConfig.js";
 import { countAllPosts, createPost, deletePostById, findAllPosts, updatePostbyId } from "../repositories/postRepository.js";
 
 export const createPostService = async (createPostObject) => {
-  const { caption, file, isPublic } = createPostObject;
+  const { caption, file, isPublic, user } = createPostObject;
 
   if (!file) {
     throw new Error("No file provided for upload.");
@@ -31,15 +31,16 @@ export const createPostService = async (createPostObject) => {
     caption: caption?.trim(),
     image: publicUrlData.publicUrl,
     isPublic: isPublic === "true" || isPublic === true,
+    user,
   });
 
   return post;
 };
 
-export const getAllPostsService = async (offSet, limit) => {
-  const posts = await findAllPosts(offSet, limit);
+export const getAllPostsService = async (offSet, limit, userId) => {
+  const posts = await findAllPosts(offSet, limit, userId);
 
-  const totalPostsCount = await countAllPosts();
+  const totalPostsCount = await countAllPosts(userId);
 
   const totalPages = Math.ceil(totalPostsCount/limit)
 

@@ -6,10 +6,14 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ error: "No file uploaded." });
     }
 
+    const isPublic = req.body.isPublic === "true" || req.body.isPublic === true;
+    const userId = req.user.id || req.user._id;
+
     const post = await createPostService({
       caption: req.body.caption,
-      isPublic: req.body.isPublic,
+      isPublic,
       file: req.file,
+      user: userId,
     });
 
     return res.status(201).json({
@@ -25,27 +29,26 @@ export const createPost = async (req, res) => {
   }
 };
 
-export const getAllPosts = async (req,res) => {
+export const getAllPosts = async (req, res) => {
   try {
-  
-    const offSet = req.query.offset || 0
-    const limit = req.query.limit || 10
+    const offSet = parseInt(req.query.offset) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+    const userId = req.user.id || req.user._id;
 
-    const paginatedPosts = await getAllPostsService(offSet, limit);
+    const paginatedPosts = await getAllPostsService(offSet, limit, userId);
 
     return res.status(200).json({
       success: true,
       message: "All Posts fetched successfully!",
       data: paginatedPosts,
-    })
-
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
       error: error.message || "Something went wrong.",
     });
   }
-}
+};
 export const deletePost = async (req,res) => {
   try {
   

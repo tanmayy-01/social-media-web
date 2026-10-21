@@ -9,21 +9,33 @@ export const createPost = async({caption, image, isPublic, user})=> {
     }
 }
 
-export const findAllPosts = async (offSet, limit) => {
+export const findAllPosts = async (offSet, limit, userId) => {
     try {
-        const posts = await Post.find().sort({createdAt: -1}).skip(offSet).limit(limit);
+        const query = userId
+            ? { $or: [{ isPublic: true }, { user: userId }] }
+            : { isPublic: true };
+        const posts = await Post.find(query)
+            .populate("user", "username email")
+            .sort({createdAt: -1})
+            .skip(offSet)
+            .limit(limit);
         return posts;
     } catch (error) {
-        console.log(error)
+        console.log(error);
+        throw error;
     }
 }
 
-export const countAllPosts = async () => {
+export const countAllPosts = async (userId) => {
     try {
-        const count = await Post.countDocuments();
+        const query = userId
+            ? { $or: [{ isPublic: true }, { user: userId }] }
+            : { isPublic: true };
+        const count = await Post.countDocuments(query);
         return count;
     } catch (error) {
-        console.log(error)
+        console.log(error);
+        throw error;
     }
 }
 
